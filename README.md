@@ -38,7 +38,6 @@ e.g.
 
 Pip library required:
 ```
-pip3 install beepy
 pip3 install python-dateutil
 pip3 install requests
 ```
