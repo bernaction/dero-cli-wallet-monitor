@@ -47,7 +47,7 @@ pip3 install requests
 
 ## Installation
 ```
-git clone https://github.com/51FuR4nk/wallet-monitor.git
+git clone https://github.com/bernaction/dero-cli-wallet-monitor.git
 ```
 or just copy and paste derohe_monitor.py
 
