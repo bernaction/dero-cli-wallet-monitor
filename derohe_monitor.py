@@ -22,9 +22,8 @@ from discord import SyncWebhook
 RATIO = 100000
 TELEGRAM_BOT_TOKEN = None
 TELEGRAM_CHAT_ID = None
-DISCORD_WEBHOOK = ""
+DISCORD_WEBHOOK = None
 wallet_rpc_server = "http://127.0.0.1:10103/json_rpc"
-node_rpc_server = "http://127.0.0.1:10103/json_rpc"
 HEIGHT = 0
 DAYS = 7
 MINIBLOCK_WORTH = 0.0615
@@ -41,9 +40,6 @@ def get_arguments():
     parser.add_argument('--rpc-server',
                         action='store',
                         help='Wallet rpc-server address. Default 127.0.0.1:10103')
-    parser.add_argument('--node-rpc-server',
-                        action='store',
-                        help='Node wallet rpc-server address.')
     parser.add_argument('--tg-bot',
                         action='store',
                         help='Telegram bot token')
@@ -356,26 +352,24 @@ def compute_power(gain, diff):
     return power
 
 
-def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=None):
+def run(rpc_server, max_zero, one_shot=False, main_rpc=None):
     count_failure = 0
     passing_time = 0
     flag_notify = True
     diff = 0.0
-    global fiat_total, fiat
+    global fiat
     wp = WalletParser(rpc_server, DAYS,)
     try:
         fiat = requests.get('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=dero').json()[0]['current_price']
     except:
-        print("erro ao consultar minerstat")
-    node_wp = None if node_rpc_server is None else WalletParser(node_rpc_server)
-    dp =  None if main_rpc is None else DerodParser(main_rpc)
+        fiat = 0
+        print("Coingecko is out")
+    dp = None if main_rpc is None else DerodParser(main_rpc)
     while True:
         lines = ""
         sys.stdout.write("\r")
         lines += "--------------------------------------------------------------------------------\n"
         wp.update()
-        if node_wp is not None:
-            node_wp.update()
         if dp is not None:
             power = compute_power(wp.days, dp.daily_gain)
         lines += "|{:^12}:{:^10}:{:^10}:{:^10}:{:^10}:{:^10}:{:^10}|\n".format(
@@ -395,9 +389,8 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=Non
             flag_notify = True
         lines += "| {:14}:{:61} |\n".format("Current height", wp.height) 
         lines += "| {:14}:{:61} |\n".format("Wallet amount", wp.get_balance())
-        lines += "| {:14}:{:61} |\n".format("U$ Fiat amount", round(fiat * wp.get_balance(), 2))
-        if node_wp is not None:
-            lines += "| {:14}:{:61} |\n".format("Node amount", node_wp.get_balance())
+        if fiat != 0:
+            lines += "| {:14}:{:61} |\n".format("U$ Fiat amount", round(fiat * wp.get_balance(), 2))
         now = datetime.now()
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
         lines += "| {:14}:{:>61} |\n".format("Date", formatted_date)
@@ -427,16 +420,14 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=Non
         if one_shot:
             sys.exit(0)
         time.sleep(60)
+        
 
 
 if __name__ == '__main__':
     max_zero = 0
     args = get_arguments()
-    node_rpc_server = None
     if args.rpc_server:
         wallet_rpc_server = "http://{}/json_rpc".format(args.rpc_server)
-    if args.node_rpc_server:
-        node_rpc_server = "http://{}/json_rpc".format(args.node_rpc_server)
     if args.tg_bot:
         TELEGRAM_BOT_TOKEN = args.tg_bot
     if args.tg_chat:
@@ -447,4 +438,4 @@ if __name__ == '__main__':
         max_zero = int(args.notify_count)
     if args.day_range:
         DAYS = args.day_range
-    run(wallet_rpc_server, max_zero, node_rpc_server, args.one_shot)
+    run(wallet_rpc_server, max_zero, args.one_shot)
