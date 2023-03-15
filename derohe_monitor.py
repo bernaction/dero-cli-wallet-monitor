@@ -14,21 +14,21 @@ import time
 import json
 import requests
 import argparse
-from beepy import beep
 from dateutil import parser
 from collections import deque
 from datetime import datetime, timedelta
-
+from discord import SyncWebhook
 
 RATIO = 100000
 TELEGRAM_BOT_TOKEN = None
 TELEGRAM_CHAT_ID = None
-DISCORD_WEBHOOK = None
+DISCORD_WEBHOOK = ""
 wallet_rpc_server = "http://127.0.0.1:10103/json_rpc"
 node_rpc_server = "http://127.0.0.1:10103/json_rpc"
 HEIGHT = 0
 DAYS = 7
-
+MINIBLOCK_WORTH = 0.0615
+GRAPH_WIDTH = 50
 
 def get_arguments():
     """
@@ -62,15 +62,11 @@ def get_arguments():
     parser.add_argument('--day-range',
                         action='store', type=int,
                         help="Number of days to plot. Default 7")
-    parser.add_argument('--sound',
-                        action='store_true', default=False,
-                        help="Play sound when a new miniblock is found")
     return parser.parse_args()
 
 
 class WalletParser():
-
-    def __init__(self, rpc_server, days=7, sound=False):
+    def __init__(self, rpc_server, days=7):
         self.rpc_server = rpc_server
         self.height = self.get_height()
         self.days = int(days)
@@ -78,7 +74,6 @@ class WalletParser():
         self.min_height = self.height - from_block if (self.height - from_block) >= 0 else 0
         self.gains = self.populate_history()
         self.daily_gain = self.daily_totals()
-        self.sound = sound
 
         
 
@@ -218,8 +213,7 @@ class WalletParser():
                 if amount > 100:
                     continue
                 amounts += amount
-                if self.sound:
-                    beep(sound="coin")
+                notify('##Dero Mini-Block Found!##\n MB:{} in {}'.format(item['height'], datetime.now()))
         return amounts
 
 
@@ -235,7 +229,6 @@ class WalletParser():
 
 
 class DerodParser():
-
     def __init__(self, rpc_server):
         self.rpc_server=rpc_server
         self.daily_gain=self.avg_diff()
@@ -299,11 +292,16 @@ def plot_graph(daily_gain, unit='DERO'):
     lines = ""
     bar = ""
     max_value = max(daily_gain.values())
+    max_miniblocks = max_value / MINIBLOCK_WORTH
+
     count = 0
     for item in daily_gain:
-        delimiter = "█" if count%2 == 0 else "░"
-        if max_value > 0:
-            bar = delimiter*(int(daily_gain[item]/max_value*50))
+        if max_miniblocks > GRAPH_WIDTH:
+            percentage = int(daily_gain[item] / max_value * GRAPH_WIDTH)
+            bar = "▆" * percentage
+        else:
+            miniblocks = int(daily_gain[item] / MINIBLOCK_WORTH)
+            bar = "■" * miniblocks
         lines += "| {:10}:{:51}{:9.4f} {:4} |\n".format(item.strftime('%Y-%m-%d'), bar, round(daily_gain[item],4), unit)
         count += 1
     return lines
@@ -319,6 +317,9 @@ def discord(message):
     data = {'content': message}
     _ = requests.post(DISCORD_WEBHOOK, data, timeout=10)
 
+def discord2(message):
+    webhook = SyncWebhook.from_url(DISCORD_WEBHOOK)
+    webhook.send(message)
 
 def notify(message):
     if (TELEGRAM_BOT_TOKEN is not None
@@ -329,6 +330,7 @@ def notify(message):
     if (DISCORD_WEBHOOK is not None
             and DISCORD_WEBHOOK != ""):
         discord(message)
+        discord2(message)
 
 
 def print_avg(data, supposed_len):
@@ -350,16 +352,21 @@ def print_sum(data, supposed_len):
 def compute_power(gain, diff):
     power = dict()
     for item in gain:
-        power[item] = (gain[item]/0.06150)*((diff[item]*1000000)/48000)/1000
+        power[item] = (gain[item]/MINIBLOCK_WORTH)*((diff[item]*1000000)/48000)/1000
     return power
 
 
-def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, sound=False, main_rpc=None):
+def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=None):
     count_failure = 0
     passing_time = 0
     flag_notify = True
     diff = 0.0
-    wp = WalletParser(rpc_server, DAYS, sound)
+    global fiat_total, fiat
+    wp = WalletParser(rpc_server, DAYS,)
+    try:
+        fiat = requests.get('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=dero').json()[0]['current_price']
+    except:
+        print("erro ao consultar minerstat")
     node_wp = None if node_rpc_server is None else WalletParser(node_rpc_server)
     dp =  None if main_rpc is None else DerodParser(main_rpc)
     while True:
@@ -374,32 +381,12 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, sound=False,
         lines += "|{:^12}:{:^10}:{:^10}:{:^10}:{:^10}:{:^10}:{:^10}|\n".format(
             '', '1m', '15m', '1h', '6h', '24h', '7d')
         lines += "|{:^12}:{:^20}:{:^20}:{:^20}:{:^20}:{:^20}:{:^20}|\n".format('gain',
-                                                                               print_sum(
-                                                                                   [diff], 1),
-                                                                               print_sum(
-                                                                                   wp.gains['avg_15'], 15),
-                                                                               print_sum(
-                                                                                   wp.gains['avg_60'], 60),
-                                                                               print_sum(
-                                                                                   wp.gains['avg_360'], 360),
-                                                                               print_sum(
-                                                                                   wp.gains['avg_1440'], 1440),
-                                                                               print_sum(
-                                                                                   wp.gains['avg_10080'], 10080))
-        if node_wp is not None:
-            lines += "|{:>12}:{:^20}:{:^20}:{:^20}:{:^20}:{:^20}:{:^20}|\n".format('node gain',
-                                                                               print_sum(
-                                                                                   [diff], 1),
-                                                                               print_sum(
-                                                                                   node_wp.gains['avg_15'], 15),
-                                                                               print_sum(
-                                                                                   node_wp.gains['avg_60'], 60),
-                                                                               print_sum(
-                                                                                   node_wp.gains['avg_360'], 360),
-                                                                               print_sum(
-                                                                                   node_wp.gains['avg_1440'], 1440),
-                                                                               print_sum(
-                                                                                   node_wp.gains['avg_10080'], 10080))
+                                                                               print_sum([diff], 1),
+                                                                               print_sum(wp.gains['avg_15'], 15),
+                                                                               print_sum(wp.gains['avg_60'], 60),
+                                                                               print_sum(wp.gains['avg_360'], 360),
+                                                                               print_sum(wp.gains['avg_1440'], 1440),
+                                                                               print_sum(wp.gains['avg_10080'], 10080))
         lines += "|"+" "*78+"|\n"
         if diff == 0.0:
             count_failure += 1
@@ -408,6 +395,7 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, sound=False,
             flag_notify = True
         lines += "| {:14}:{:61} |\n".format("Current height", wp.height) 
         lines += "| {:14}:{:61} |\n".format("Wallet amount", wp.get_balance())
+        lines += "| {:14}:{:61} |\n".format("U$ Fiat amount", round(fiat * wp.get_balance(), 2))
         if node_wp is not None:
             lines += "| {:14}:{:61} |\n".format("Node amount", node_wp.get_balance())
         now = datetime.now()
@@ -439,7 +427,6 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, sound=False,
         if one_shot:
             sys.exit(0)
         time.sleep(60)
-        
 
 
 if __name__ == '__main__':
@@ -460,4 +447,4 @@ if __name__ == '__main__':
         max_zero = int(args.notify_count)
     if args.day_range:
         DAYS = args.day_range
-    run(wallet_rpc_server, max_zero, node_rpc_server, args.one_shot, args.sound)
+    run(wallet_rpc_server, max_zero, node_rpc_server, args.one_shot)
