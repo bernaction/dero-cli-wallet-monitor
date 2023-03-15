@@ -1,14 +1,16 @@
 # wallet-monitor
 Dero HE Wallet Monitor. Statistics and more
+fork by Berna Cripto: U$ Fiat amount
 
 This script aims to show some statistics about the Dero mined from a node.
 ```
 ------------------------------------------------------------------------------
 |          :    1m    :   15m    :    1h    :    6h    :   24h    :    7d    |
-|   gain   :    0     :  0.123   :  0.246   :  4.7367  : 18.7608  : 76.1967  |
+|    gain  :  0.0000  :  0.0000  :  0.0000  :  0.0615  :  0.2460  :  2.5854  |
 |                                                                            |
-| Current height:                                                      27374 |
-| Current amount:                                                  75.025960 |
+| Current height:                                                    1771400 |
+| Wallet amount :                                                    7.54695 |
+| U$ Fiat amount:                                                      32.07 |
 | Date:                                                  2022-03-04 23:25:24 |
 ------------------------------------------------------------------------------
 | 2022-02-25:                                                              0 |
