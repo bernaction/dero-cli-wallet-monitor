@@ -20,9 +20,6 @@ from datetime import datetime, timedelta
 from discord import SyncWebhook
 
 RATIO = 100000
-TELEGRAM_BOT_TOKEN = None
-TELEGRAM_CHAT_ID = None
-DISCORD_WEBHOOK = None
 wallet_rpc_server = "http://127.0.0.1:10103/json_rpc"
 HEIGHT = 0
 DAYS = 7
@@ -439,3 +436,10 @@ if __name__ == '__main__':
     if args.day_range:
         DAYS = args.day_range
     run(wallet_rpc_server, max_zero, args.one_shot)
+
+with open('secret.json') as e:
+    secret = json.load(e)
+    TOKEN = secret['token']
+    DISCORD_WEBHOOK = secret['DISCORD_WEBHOOK']
+    TELEGRAM_BOT_TOKEN = secret['TELEGRAM_BOT_TOKEN']
+    TELEGRAM_CHAT_ID = secret['TELEGRAM_CHAT_ID']

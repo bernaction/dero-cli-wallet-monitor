@@ -1,2 +1,5 @@
 .vscode
 .db
+*.iml
+*.xml
+secret.json
