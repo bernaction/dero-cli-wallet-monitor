@@ -15,10 +15,11 @@ import time
 import json
 import requests
 import argparse
+from easygui import *
 from dateutil import parser
+from playsound import playsound
 from collections import deque
 from datetime import datetime, timedelta
-from discord import SyncWebhook
 
 RATIO = 100000
 wallet_rpc_server = "http://127.0.0.1:10103/json_rpc"
@@ -298,8 +299,12 @@ def plot_graph(daily_gain, unit='DERO'):
 
 
 def notify(message):
-    os.system("cls")
-    print("QUEBROU\nQUEBROU\nQUEBROU\nQUEBROU\nQUEBROU\nQUEBROU\nQUEBROU\n")
+    playsound('cash1.mp3')
+    print(message)
+    text = message
+    title = "Dero Monitor"
+    output = buttonbox(text, title)
+    print("Ok" + output)
 
 def print_avg(data, supposed_len):
     if supposed_len == 1:
