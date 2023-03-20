@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 
 RATIO = 100000
 wallet_rpc_server = "http://127.0.0.1:10103/json_rpc"
+node_rpc_server = "http://127.0.0.1:10103/json_rpc"
 HEIGHT = 0
 DAYS = 7
 MINIBLOCK_WORTH = 0.0615
@@ -39,6 +40,9 @@ def get_arguments():
     parser.add_argument('--rpc-server',
                         action='store',
                         help='Wallet rpc-server address. Default 127.0.0.1:10103')
+    parser.add_argument('--node-rpc-server',
+                        action='store',
+                        help='Node wallet rpc-server address.')
     parser.add_argument('--notify-count',
                         action='store',
                         help="Notify if you don't get reward after X minutes. defult disabled")
@@ -329,13 +333,14 @@ def compute_power(gain, diff):
     return power
 
 
-def run(rpc_server, max_zero, one_shot=False, main_rpc=None):
+def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=None):
     count_failure = 0
     passing_time = 0
     flag_notify = True
     diff = 0.0
     global fiat
     wp = WalletParser(rpc_server, DAYS,)
+    node_wp = None if node_rpc_server is None else WalletParser(node_rpc_server)
     try:
         fiat = requests.get('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=dero').json()[0]['current_price']
     except:
@@ -347,6 +352,8 @@ def run(rpc_server, max_zero, one_shot=False, main_rpc=None):
         sys.stdout.write("\r")
         lines += "--------------------------------------------------------------------------------\n"
         wp.update()
+        if node_wp is not None:
+            node_wp.update()
         if dp is not None:
             power = compute_power(wp.days, dp.daily_gain)
         lines += "|{:^12}:{:^10}:{:^10}:{:^10}:{:^10}:{:^10}:{:^10}|\n".format(
@@ -358,6 +365,14 @@ def run(rpc_server, max_zero, one_shot=False, main_rpc=None):
                                                                                print_sum(wp.gains['avg_360'], 360),
                                                                                print_sum(wp.gains['avg_1440'], 1440),
                                                                                print_sum(wp.gains['avg_10080'], 10080))
+        if node_wp is not None:
+            lines += "|{:>12}:{:^20}:{:^20}:{:^20}:{:^20}:{:^20}:{:^20}|\n".format('node gain',
+                                                                               print_sum([diff], 1),
+                                                                               print_sum(node_wp.gains['avg_15'], 15),
+                                                                               print_sum(node_wp.gains['avg_60'], 60),
+                                                                               print_sum(node_wp.gains['avg_360'], 360),
+                                                                               print_sum(node_wp.gains['avg_1440'], 1440),
+                                                                               print_sum(node_wp.gains['avg_10080'], 10080))
         lines += "|"+" "*78+"|\n"
         if diff == 0.0:
             count_failure += 1
@@ -366,6 +381,8 @@ def run(rpc_server, max_zero, one_shot=False, main_rpc=None):
             flag_notify = True
         lines += "| {:14}:{:61} |\n".format("Current height", wp.height) 
         lines += "| {:14}:{:61} |\n".format("Wallet amount", wp.get_balance())
+        if node_wp is not None:
+            lines += "| {:14}:{:61} |\n".format("Node amount", node_wp.get_balance())
         if fiat != 0:
             lines += "| {:14}:{:61} |\n".format("U$ Fiat amount", round(fiat * wp.get_balance(), 2))
         now = datetime.now()
@@ -403,10 +420,13 @@ def run(rpc_server, max_zero, one_shot=False, main_rpc=None):
 if __name__ == '__main__':
     max_zero = 0
     args = get_arguments()
+    node_rpc_server = None
     if args.rpc_server:
         wallet_rpc_server = "http://{}/json_rpc".format(args.rpc_server)
+    if args.node_rpc_server:
+        node_rpc_server = "http://{}/json_rpc".format(args.node_rpc_server)
     if args.notify_count:
         max_zero = int(args.notify_count)
     if args.day_range:
         DAYS = args.day_range
-    run(wallet_rpc_server, max_zero, args.one_shot)
+    run(wallet_rpc_server, max_zero,  node_rpc_server, args.one_shot)
