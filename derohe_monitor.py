@@ -9,6 +9,7 @@ You should have received a copy of the GNU General Public License along with thi
 If not, see <https://www.gnu.org/licenses/>.
 '''
 
+import os
 import sys
 import time
 import json
@@ -37,15 +38,6 @@ def get_arguments():
     parser.add_argument('--rpc-server',
                         action='store',
                         help='Wallet rpc-server address. Default 127.0.0.1:10103')
-    parser.add_argument('--tg-bot',
-                        action='store',
-                        help='Telegram bot token')
-    parser.add_argument('--tg-chat',
-                        action='store',
-                        help='Telegram chat id')
-    parser.add_argument('--discord-webhook',
-                        action='store',
-                        help='Discord webhook url')
     parser.add_argument('--notify-count',
                         action='store',
                         help="Notify if you don't get reward after X minutes. defult disabled")
@@ -300,31 +292,14 @@ def plot_graph(daily_gain, unit='DERO'):
     return lines
 
 
-def telegram(message):
-    url = 'https://api.telegram.org/bot%s/sendMessage?chat_id=%s&text=%s' % (
-        TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, message)
-    _ = requests.get(url, timeout=10)
 
 
-def discord(message):
-    data = {'content': message}
-    _ = requests.post(DISCORD_WEBHOOK, data, timeout=10)
 
-def discord2(message):
-    webhook = SyncWebhook.from_url(DISCORD_WEBHOOK)
-    webhook.send(message)
+
 
 def notify(message):
-    if (TELEGRAM_BOT_TOKEN is not None
-        and TELEGRAM_BOT_TOKEN != ""
-        and TELEGRAM_CHAT_ID is not None
-            and TELEGRAM_CHAT_ID != ""):
-        telegram(message)
-    if (DISCORD_WEBHOOK is not None
-            and DISCORD_WEBHOOK != ""):
-        discord(message)
-        discord2(message)
-
+    os.system("cls")
+    print("QUEBROU\nQUEBROU\nQUEBROU\nQUEBROU\nQUEBROU\nQUEBROU\nQUEBROU\n")
 
 def print_avg(data, supposed_len):
     if supposed_len == 1:
@@ -425,21 +400,8 @@ if __name__ == '__main__':
     args = get_arguments()
     if args.rpc_server:
         wallet_rpc_server = "http://{}/json_rpc".format(args.rpc_server)
-    if args.tg_bot:
-        TELEGRAM_BOT_TOKEN = args.tg_bot
-    if args.tg_chat:
-        TELEGRAM_CHAT_ID = args.tg_chat
-    if args.discord_webhook:
-        DISCORD_WEBHOOK = args.discord_webhook
     if args.notify_count:
         max_zero = int(args.notify_count)
     if args.day_range:
         DAYS = args.day_range
     run(wallet_rpc_server, max_zero, args.one_shot)
-
-with open('secret.json') as e:
-    secret = json.load(e)
-    TOKEN = secret['token']
-    DISCORD_WEBHOOK = secret['DISCORD_WEBHOOK']
-    TELEGRAM_BOT_TOKEN = secret['TELEGRAM_BOT_TOKEN']
-    TELEGRAM_CHAT_ID = secret['TELEGRAM_CHAT_ID']
