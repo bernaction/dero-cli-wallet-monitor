@@ -411,7 +411,8 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=Non
         time.sleep(60)
         
 def notify(message1, message2, message3):
-#    print(message)
+    print(f"\n\n\nDERO MINI-BLOCK FOUND")
+    print("MB:{} in {}\n\n\n".format(item['height'], agora.strftime("%d/%m/%Y %H:%M:%S")))
     layout = [
         [sg.Image(filename="dero_logo.png", size=(100, 100), pad=((10, 0), (10, 10)))],
         [sg.Text(message1, size=(30, 1), pad=((10, 0), (0, 10)))],
