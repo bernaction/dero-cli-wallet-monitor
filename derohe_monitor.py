@@ -18,6 +18,8 @@ import argparse
 import PySimpleGUI as sg
 from dateutil import parser
 from playsound import playsound
+from colorama import init
+
 from collections import deque
 from datetime import datetime, timedelta
 
@@ -430,6 +432,7 @@ def dialog(message1, message2, message3):
 if __name__ == '__main__':
     max_zero = 0
     args = get_arguments()
+    init(autoreset=True)
 
     # teste caixa de diálogo
     #dialog("Dero Mini-Block Found!", " ", agora.strftime("%d/%m/%Y %H:%M:%S"))
