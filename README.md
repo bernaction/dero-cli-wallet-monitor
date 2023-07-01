@@ -1,7 +1,10 @@
 # wallet-monitor
-Dero HE Wallet Monitor. Statistics and more
+Dero HE Wallet Monitor. Statistics, Sound Notify and more
 
-fork by Berna Cripto: U$ Fiat amount
+fork by Berna Cripto: 
++ U$ Fiat amount
++ Sound Notify (coin dropped when blocks found)
++ Remove RPC monitor
 
 This script aims to show some statistics about the Dero mined from a node.
 ```
@@ -43,6 +46,7 @@ Pip library required:
 ```
 pip3 install python-dateutil
 pip3 install requests
+pip3 install PySimpleGUI
 ```
 
 ## Installation
@@ -57,29 +61,8 @@ run the code with
 python3 derohe_monitor.py
 ```
 
-```
-usage: python3 {'prog': 'derohe_monitor.py'} [-a]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --rpc-server RPC_SERVER
-                        Wallet rpc-server address. Default 127.0.0.1:10103
-  --node-rpc-server NODE_RPC_SERVER
-                        Node wallet rpc-server address.
-  --notify-count NOTIFY_COUNT
-                        Notify if you don't get reward after X minutes. defult
-                        disabled
-  --one-shot            Display data and exit
-  --day-range DAY_RANGE
-                        Number of days to plot. Default 7
-```
-
-Option are for:
-- specify the RPC server if not the default one
-- one shot, will plot the graph and exit
-- day-range will plot an arbitrary number of days. Default is 7
-
 ## Notes
 
 1. This script have been tested on linux only, please report any issue with other systems.
 2. wait some time after starting your wallet before starting the script. Sometimes the RPC respond with random stuff when is started.
+3. In Windows, install official Python Program and make sure the PATH in Windows Settings to run correctly.
