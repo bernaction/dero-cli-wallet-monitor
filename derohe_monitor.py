@@ -436,7 +436,7 @@ if __name__ == '__main__':
     args = get_arguments()
 
     # teste caixa de diálogo
-    #notify("Dero Mini-Block Found!", " ", agora.strftime("%d/%m/%Y %H:%M:%S"))
+    ##notify("Dero Mini-Block Found!", " ", agora.strftime("%d/%m/%Y %H:%M:%S"))
 
     node_rpc_server = None
     if args.rpc_server:
