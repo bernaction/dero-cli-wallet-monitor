@@ -15,7 +15,7 @@ import time
 import json
 import requests
 import argparse
-from easygui import *
+import PySimpleGUI as sg
 from dateutil import parser
 from playsound import playsound
 from collections import deque
@@ -24,6 +24,7 @@ from datetime import datetime, timedelta
 RATIO = 100000
 wallet_rpc_server = "http://127.0.0.1:10103/json_rpc"
 node_rpc_server = "http://127.0.0.1:10103/json_rpc"
+agora = datetime.now()
 HEIGHT = 0
 DAYS = 7
 MINIBLOCK_WORTH = 0.0615
@@ -203,7 +204,10 @@ class WalletParser():
                 if amount > 100:
                     continue
                 amounts += amount
-                notify('##Dero Mini-Block Found!##\n MB:{} in {}'.format(item['height'], datetime.now()))
+                notify("Dero Mini-Block Found!", "MB:{} in {}".format(item['height'], agora.strftime("%d/%m/%Y %H:%M:%S")))
+                print(f"\n\n\nDERO MINI-BLOCK FOUND")
+                print("MB:{} in {}\n\n\n".format(item['height'], agora.strftime("%d/%m/%Y %H:%M:%S")))
+
         return amounts
 
 
@@ -296,20 +300,6 @@ def plot_graph(daily_gain, unit='DERO'):
         count += 1
     return lines
 
-
-
-
-
-
-
-def notify(message):
-    playsound('cash1.mp3')
-    print(message)
-    text = message
-    title = "Dero Monitor"
-    output = buttonbox(text, title)
-    print("Ok" + output)
-
 def print_avg(data, supposed_len):
     if supposed_len == 1:
         return "\033[96m{}\033[00m".format(round(sum(data)/supposed_len, 4))
@@ -350,7 +340,8 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=Non
     while True:
         lines = ""
         sys.stdout.write("\r")
-        lines += "--------------------------------------------------------------------------------\n"
+        #lines += "--------------------------------------------------------------------------------\n"
+        lines += "\n"
         wp.update()
         if node_wp is not None:
             node_wp.update()
@@ -388,21 +379,25 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=Non
         now = datetime.now()
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
         lines += "| {:14}:{:>61} |\n".format("Date", formatted_date)
-        lines += "--------------------------------------------------------------------------------\n"
+        #lines += "--------------------------------------------------------------------------------\n"
+        lines += "\n"
         lines += plot_graph(wp.daily_gain)
         if dp is not None:
-            lines += "--------------------------------------------------------------------------------\n"
+            # lines += "--------------------------------------------------------------------------------\n"
+            lines += "\n"
             lines += plot_graph(dp.daily_gain, "GH/s")
-            lines += "--------------------------------------------------------------------------------\n"
+            # lines += "--------------------------------------------------------------------------------\n"
+            lines += "\n"
             lines += plot_graph(power, "MH/s")
-        lines += "--------------------------------------------------------------------------------\n"
+        #lines += "--------------------------------------------------------------------------------\n"
+        lines += "\n"
         if max_zero > 0:
             if count_failure > max_zero:
                 message = 'Since {} minutes you are not receiving rewards!'.format(
                     count_failure)
                 lines += "\033[91m{}\033[00m\n".format(message)
                 if flag_notify:
-                    notify(message)
+                    notify(message, "", "")
                     count_failure = 0
         if passing_time > 0: 
             for item in range(len(lines.split('\n'))-1):
@@ -415,11 +410,34 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=Non
             sys.exit(0)
         time.sleep(60)
         
+def notify(message1, message2, message3):
+#    print(message)
+    layout = [
+        [sg.Image(filename="dero_logo.png", size=(100, 100), pad=((10, 0), (10, 10)))],
+        [sg.Text(message1, size=(30, 1), pad=((10, 0), (0, 10)))],
+        [sg.Text(message2, size=(30, 1), pad=((10, 0), (0, 10)))],
+        [sg.Text(message3, size=(30, 1), pad=((10, 0), (0, 10)))],
+        [sg.Button("OK", size=(10, 1), pad=((10, 10), (0, 10)))]
+    ]
+    janela = sg.Window("Bloco Quebrado", layout, size=(400, 400), auto_close=True, auto_close_duration=5)
+    #playsound('cash1.mp3')
+    playsound('coin2.wav')
+    while True:
+        evento, valores = janela.read(timeout=100)
+        if evento == "OK":
+            break
+        if evento == sg.WINDOW_CLOSED:
+            break
+    janela.close()
 
 
 if __name__ == '__main__':
     max_zero = 0
     args = get_arguments()
+
+    # teste caixa de diálogo
+    #notify("Dero Mini-Block Found!", " ", agora.strftime("%d/%m/%Y %H:%M:%S"))
+
     node_rpc_server = None
     if args.rpc_server:
         wallet_rpc_server = "http://{}/json_rpc".format(args.rpc_server)
