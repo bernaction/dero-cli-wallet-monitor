@@ -47,11 +47,13 @@ Pip library required:
 pip3 install python-dateutil
 pip3 install requests
 pip3 install PySimpleGUI
+and more
 ```
 
 ## Installation
 ```
 git clone https://github.com/bernaction/dero-cli-wallet-monitor.git
+pip3 install -r requirements.txt
 ```
 or just copy and paste derohe_monitor.py
 
