@@ -157,6 +157,7 @@ class WalletParser():
         last_7D = (datetime.today() - timedelta(days=7)
                    ).replace(second=0, microsecond=0)
         last_24H = datetime.today() - timedelta(days=1)
+        last_12H = datetime.today() - timedelta(hours=12)
         last_6H = datetime.today() - timedelta(hours=7)
         last_1H = datetime.today() - timedelta(hours=2)
         last_15M = datetime.today() - timedelta(minutes=15)
@@ -164,6 +165,7 @@ class WalletParser():
         gains['avg_15'] = deque(maxlen=15)
         gains['avg_60'] = deque(maxlen=60)
         gains['avg_360'] = deque(maxlen=360)
+        gains['avg_720'] = deque(maxlen=720)
         gains['avg_1440'] = deque(maxlen=1440)
         gains['avg_10080'] = deque(maxlen=10080)
         if 'entries' in coinbase['result']:
@@ -176,6 +178,8 @@ class WalletParser():
                     gains['avg_10080'].append(amount)
                 if item > last_24H:
                     gains['avg_1440'].append(amount)
+                if item > last_12H:
+                    gains['avg_720'].append(amount)
                 if item > last_6H:
                     gains['avg_360'].append(amount)
                 if item > last_1H:
@@ -349,22 +353,24 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=Non
         if dp is not None:
             power = compute_power(wp.days, dp.daily_gain)
         lines += "|{:^12}:{:^10}:{:^10}:{:^10}:{:^10}:{:^10}:{:^10}|\n".format(
-            '', '1m', '15m', '1h', '6h', '24h', '7d')
+            '', '1m', '15m', '1h', '6h', '12h', '24h', '7d')
         lines += "|{:^12}:{:^20}:{:^20}:{:^20}:{:^20}:{:^20}:{:^20}|\n".format('gain',
                                                                                print_sum([diff], 1),
                                                                                print_sum(wp.gains['avg_15'], 15),
                                                                                print_sum(wp.gains['avg_60'], 60),
                                                                                print_sum(wp.gains['avg_360'], 360),
+                                                                               print_sum(wp.gains['avg_720'], 720),
                                                                                print_sum(wp.gains['avg_1440'], 1440),
                                                                                print_sum(wp.gains['avg_10080'], 10080))
         if node_wp is not None:
             lines += "|{:>12}:{:^20}:{:^20}:{:^20}:{:^20}:{:^20}:{:^20}|\n".format('node gain',
-                                                                               print_sum([diff], 1),
-                                                                               print_sum(node_wp.gains['avg_15'], 15),
-                                                                               print_sum(node_wp.gains['avg_60'], 60),
-                                                                               print_sum(node_wp.gains['avg_360'], 360),
-                                                                               print_sum(node_wp.gains['avg_1440'], 1440),
-                                                                               print_sum(node_wp.gains['avg_10080'], 10080))
+                                                                                   print_sum([diff], 1),
+                                                                                   print_sum(node_wp.gains['avg_15'], 15),
+                                                                                   print_sum(node_wp.gains['avg_60'], 60),
+                                                                                   print_sum(node_wp.gains['avg_360'], 360),
+                                                                                   print_sum(node_wp.gains['avg_720'], 720),
+                                                                                   print_sum(node_wp.gains['avg_1440'], 1440),
+                                                                                   print_sum(node_wp.gains['avg_10080'], 10080))
         lines += "|"+" "*78+"|\n"
         if diff == 0.0:
             count_failure += 1
@@ -407,6 +413,7 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=Non
         passing_time += 1
         if one_shot:
             sys.exit(0)
+        print("refresh in 60s...")
         time.sleep(60)
         
 def dialog(message1, message2, message3):
@@ -417,7 +424,7 @@ def dialog(message1, message2, message3):
         [sg.Text(message3, size=(30, 1), pad=((10, 0), (0, 10)))],
         [sg.Button("OK", size=(10, 1), pad=((10, 10), (0, 10)))]
     ]
-    janela = sg.Window("DERO MINI-BLOCK FOUND", layout, size=(400, 400), auto_close=True, auto_close_duration=5)
+    janela = sg.Window("DERO MINI-BLOCK FOUND", layout, size=(400, 400), auto_close=True, auto_close_duration=15)
     #playsound('cash1.mp3')
     playsound('coin2.wav')
     while True:
