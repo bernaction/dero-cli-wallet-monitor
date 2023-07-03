@@ -6,3 +6,5 @@ secret.json
 /lib/
 /venv/
 derohe_monitor.bat
+/update_pip.bat
+/.venv/

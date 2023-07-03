@@ -204,7 +204,8 @@ class WalletParser():
                 print(f"\n\n\nDERO MINI-BLOCK FOUND")
                 print("MB:{} in {}\n\n\n".format(item['height'], hora))
                 dialog("Dero Mini-Block Found!", item['height'], hora)
-
+                sys.stdout.write('\033c')
+                sys.stdout.write("\r")
 
         return amounts
 
