@@ -3,6 +3,6 @@
 *.iml
 *.xml
 secret.json
-/dero-monitor.bat
 /lib/
 /venv/
+derohe_monitor.bat
