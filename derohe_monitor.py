@@ -32,6 +32,7 @@ DAYS = 7
 MINIBLOCK_WORTH = 0.0615
 GRAPH_WIDTH = 50
 
+
 def get_arguments():
     """
     parse the argument provided to the script
@@ -63,12 +64,10 @@ class WalletParser():
         self.rpc_server = rpc_server
         self.height = self.get_height()
         self.days = int(days)
-        from_block = 5000 * self.days # considering 18 second block is around 4800 block every day
+        from_block = 5000 * self.days  # considering 18 second block is around 4800 block every day
         self.min_height = self.height - from_block if (self.height - from_block) >= 0 else 0
         self.gains = self.populate_history()
         self.daily_gain = self.daily_totals()
-
-        
 
     def generic_call(self, method, params=None):
         headers = {'Content-Type': 'application/json'}
@@ -84,16 +83,14 @@ class WalletParser():
             sys.exit()
         return r
 
-
     def get_balance(self):
         result = self.generic_call("GetBalance")
         try:
-            return json.loads(result.text)['result']['balance']/RATIO
+            return json.loads(result.text)['result']['balance'] / RATIO
         except:
             print("Fail to get balance from RPC. Terminating")
             sys.exit()
         return None
-
 
     def get_height(self):
         result = self.generic_call("GetHeight")
@@ -104,15 +101,12 @@ class WalletParser():
             sys.exit()
         return None
 
-
     def get_transfers(self, param=None):
         result = self.generic_call("GetTransfers", param)
         return json.loads(result.text)
 
-
     def clean_date(self, date):
         return parser.parse(date, ignoretz=True).replace(second=0, microsecond=0)
-
 
     def discretize_history(self, items, start_date):
         amount_by_minute = dict()
@@ -127,12 +121,11 @@ class WalletParser():
                 amount_by_minute[short_date] += item['amount']
         return amount_by_minute
 
-
     def daily_totals(self):
         amount_by_day = dict()
         start_date = (datetime.today() - timedelta(days=self.days)
-                   ).replace(hour=0, minute=0, second=0, microsecond=0)
-        
+                      ).replace(hour=0, minute=0, second=0, microsecond=0)
+
         now = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         while start_date <= now:
             amount_by_day[start_date] = 0
@@ -145,12 +138,11 @@ class WalletParser():
             for item in items:
                 short_date = self.clean_date(item['time']).replace(hour=0, minute=0, second=0, microsecond=0)
                 if short_date in amount_by_day.keys():
-                    amount = item['amount']/RATIO
+                    amount = item['amount'] / RATIO
                     if amount > 100:
                         continue
                     amount_by_day[short_date] += amount
         return amount_by_day
-
 
     def populate_history(self):
         coinbase = self.get_transfers({'coinbase': True, 'min_height': self.min_height})
@@ -171,7 +163,7 @@ class WalletParser():
         if 'entries' in coinbase['result']:
             short_hist = self.discretize_history(coinbase['result']['entries'], last_7D)
             for item in short_hist:
-                amount = short_hist[item]/RATIO
+                amount = short_hist[item] / RATIO
                 if amount > 100:
                     continue
                 if item > last_7D:
@@ -188,7 +180,6 @@ class WalletParser():
                     gains['avg_15'].append(amount)
         return gains
 
-
     def update_chart(self, diff):
         today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         if today == max(self.daily_gain):
@@ -196,7 +187,6 @@ class WalletParser():
         elif today > max(self.daily_gain):
             self.daily_gain.pop(min(self.daily_gain))
             self.daily_gain[today] = diff
-
 
     def get_diff(self, height):
         amounts = 0.0
@@ -206,16 +196,17 @@ class WalletParser():
             for item in items:
                 if item['height'] <= height:
                     break
-                amount = item['amount']/RATIO
+                amount = item['amount'] / RATIO
                 if amount > 100:
                     continue
                 amounts += amount
-                dialog("Dero Mini-Block Found!", "MB:{} in {}".format(item['height'], agora.strftime("%d/%m/%Y %H:%M:%S")))
+                hora = agora.strftime("%d/%m/%Y %H:%M:%S")
                 print(f"\n\n\nDERO MINI-BLOCK FOUND")
-                print("MB:{} in {}\n\n\n".format(item['height'], agora.strftime("%d/%m/%Y %H:%M:%S")))
+                print("MB:{} in {}\n\n\n".format(item['height'], hora))
+                dialog("Dero Mini-Block Found!", item['height'], hora)
+
 
         return amounts
-
 
     def update(self):
         diff = 0.0
@@ -228,10 +219,10 @@ class WalletParser():
             self.gains[item].append(diff)
 
 
-class DerodParser():
+class DerodParser:
     def __init__(self, rpc_server):
-        self.rpc_server=rpc_server
-        self.daily_gain=self.avg_diff()
+        self.rpc_server = rpc_server
+        self.daily_gain = self.avg_diff()
 
     def generic_call(self, method, params=None):
         headers = {'Content-Type': 'application/json'}
@@ -262,7 +253,7 @@ class DerodParser():
     def avg_diff(self):
         current_height = self.get_height()
         start_date = (datetime.today() - timedelta(days=7)
-                   ).replace(hour=0, minute=0, second=0, microsecond=0)
+                      ).replace(hour=0, minute=0, second=0, microsecond=0)
         diff_by_day = dict()
         now = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         while start_date <= now:
@@ -270,25 +261,28 @@ class DerodParser():
             start_date += timedelta(days=1)
         while len(diff_by_day) > 7:
             diff_by_day.pop(min(diff_by_day))
-        for i in range(current_height-35000, current_height):
+        for i in range(current_height - 35000, current_height):
             print(i)
             blk = self.get_block(i)
-            short_date = datetime.fromtimestamp(blk['result']['block_header']['timestamp']//1000).replace(hour=0, minute=0, second=0, microsecond=0)
+            short_date = datetime.fromtimestamp(blk['result']['block_header']['timestamp'] // 1000).replace(hour=0,
+                                                                                                            minute=0,
+                                                                                                            second=0,
+                                                                                                            microsecond=0)
             if short_date in diff_by_day.keys():
                 diff_by_day[short_date].append(int(blk['result']['block_header']['difficulty']))
         for item in diff_by_day:
             if len(diff_by_day[item]) == 0:
                 diff_by_day[item] = 0
             else:
-                diff_by_day[item] = sum(diff_by_day[item])/len(diff_by_day[item])/1000000000
+                diff_by_day[item] = sum(diff_by_day[item]) / len(diff_by_day[item]) / 1000000000
         return diff_by_day
 
 
 def plot_graph(daily_gain, unit='DERO'):
-    colors = {"blue":   "\033[96m",
-              "green":  "\033[92m",
-              "red":    "033[93m",
-            }
+    colors = {"blue": "\033[96m",
+              "green": "\033[92m",
+              "red": "033[93m",
+              }
     lines = ""
     bar = ""
     max_value = max(daily_gain.values())
@@ -302,16 +296,18 @@ def plot_graph(daily_gain, unit='DERO'):
         else:
             miniblocks = int(daily_gain[item] / MINIBLOCK_WORTH)
             bar = "■" * miniblocks
-        lines += "| {:10}:{:51}{:9.4f} {:4} |\n".format(item.strftime('%Y-%m-%d'), bar, round(daily_gain[item],4), unit)
+        lines += "| {:10}:{:51}{:9.4f} {:4} |\n".format(item.strftime('%Y-%m-%d'), bar, round(daily_gain[item], 4),
+                                                        unit)
         count += 1
     return lines
 
+
 def print_avg(data, supposed_len):
     if supposed_len == 1:
-        return "\033[96m{}\033[00m".format(round(sum(data)/supposed_len, 4))
+        return "\033[96m{}\033[00m".format(round(sum(data) / supposed_len, 4))
     if len(data) == supposed_len:
-        return "\033[92m{}\033[00m".format(round(sum(data)/supposed_len, 4))
-    return "\033[93m{}\033[00m".format(round(sum(data)/supposed_len, 4))
+        return "\033[92m{}\033[00m".format(round(sum(data) / supposed_len, 4))
+    return "\033[93m{}\033[00m".format(round(sum(data) / supposed_len, 4))
 
 
 def print_sum(data, supposed_len):
@@ -325,7 +321,7 @@ def print_sum(data, supposed_len):
 def compute_power(gain, diff):
     power = dict()
     for item in gain:
-        power[item] = (gain[item]/MINIBLOCK_WORTH)*((diff[item]*1000000)/48000)/1000
+        power[item] = (gain[item] / MINIBLOCK_WORTH) * ((diff[item] * 1000000) / 48000) / 1000
     return power
 
 
@@ -335,17 +331,18 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=Non
     flag_notify = True
     diff = 0.0
     global fiat
-    wp = WalletParser(rpc_server, DAYS,)
+    wp = WalletParser(rpc_server, DAYS, )
     node_wp = None if node_rpc_server is None else WalletParser(node_rpc_server)
     try:
-        fiat = requests.get('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=dero').json()[0]['current_price']
+        fiat = requests.get('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=dero').json()[0][
+            'current_price']
     except:
         fiat = 0
         print("Coingecko is out")
     dp = None if main_rpc is None else DerodParser(main_rpc)
     while True:
-        lines = ""
         sys.stdout.write("\r")
+        lines = ""
         lines += "--------------------------------------------------------------------------------\n"
         wp.update()
         if node_wp is not None:
@@ -353,8 +350,8 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=Non
         if dp is not None:
             power = compute_power(wp.days, dp.daily_gain)
         lines += "|{:^12}:{:^10}:{:^10}:{:^10}:{:^10}:{:^10}:{:^10}|\n".format(
-            '', '1m', '15m', '1h', '6h', '12h', '24h', '7d')
-        lines += "|{:^12}:{:^20}:{:^20}:{:^20}:{:^20}:{:^20}:{:^20}|\n".format('gain',
+            'average', '1m', '15m', '1h', '6h', '12h', '24h', '7d')
+        lines += "|{:^12}:{:^20}:{:^20}:{:^20}:{:^20}:{:^20}:{:^20}|\n".format('earnings',
                                                                                print_sum([diff], 1),
                                                                                print_sum(wp.gains['avg_15'], 15),
                                                                                print_sum(wp.gains['avg_60'], 60),
@@ -365,28 +362,34 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=Non
         if node_wp is not None:
             lines += "|{:>12}:{:^20}:{:^20}:{:^20}:{:^20}:{:^20}:{:^20}|\n".format('node gain',
                                                                                    print_sum([diff], 1),
-                                                                                   print_sum(node_wp.gains['avg_15'], 15),
-                                                                                   print_sum(node_wp.gains['avg_60'], 60),
-                                                                                   print_sum(node_wp.gains['avg_360'], 360),
-                                                                                   print_sum(node_wp.gains['avg_720'], 720),
-                                                                                   print_sum(node_wp.gains['avg_1440'], 1440),
-                                                                                   print_sum(node_wp.gains['avg_10080'], 10080))
-        lines += "|"+" "*78+"|\n"
+                                                                                   print_sum(node_wp.gains['avg_15'],
+                                                                                             15),
+                                                                                   print_sum(node_wp.gains['avg_60'],
+                                                                                             60),
+                                                                                   print_sum(node_wp.gains['avg_360'],
+                                                                                             360),
+                                                                                   print_sum(node_wp.gains['avg_720'],
+                                                                                             720),
+                                                                                   print_sum(node_wp.gains['avg_1440'],
+                                                                                             1440),
+                                                                                   print_sum(node_wp.gains['avg_10080'],
+                                                                                             10080))
+        lines += "|" + " " * 78 + "|\n"
         if diff == 0.0:
             count_failure += 1
         else:
             count_failure = 0
             flag_notify = True
-        lines += "| {:14}:{:61} |\n".format("Current height", wp.height) 
+        lines += "| {:14}:{:61} |\n".format("Current height", wp.height)
         lines += "| {:14}:{:61} |\n".format("Wallet amount", wp.get_balance())
         if node_wp is not None:
             lines += "| {:14}:{:61} |\n".format("Node amount", node_wp.get_balance())
         if fiat != 0:
-            lines += "| {:14}:{:61} |\n".format("U$ Fiat amount", round(fiat * wp.get_balance(), 2))
+            lines += "| {:14}:{:61} |\n".format("U$ Fiat amount", round(fiat * wp.get_balance(), 3))
         now = datetime.now()
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
         lines += "| {:14}:{:>61} |\n".format("Date", formatted_date)
-        lines += "--------------------------------------------------------------------------------\n"
+        lines += "----------------------------------- daily sum ----------------------------------\n"
         lines += plot_graph(wp.daily_gain)
         if dp is not None:
             lines += "--------------------------------------------------------------------------------\n"
@@ -404,18 +407,19 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=Non
                 if flag_notify:
                     dialog(message, "", "")
                     count_failure = 0
-        if passing_time > 0: 
-            for item in range(len(lines.split('\n'))-1):
+        if passing_time > 0:
+            for item in range(len(lines.split('\n')) - 1):
                 sys.stdout.write('\x1b[1A')
                 sys.stdout.write('\x1b[2K')
         sys.stdout.write(lines)
+        sys.stdout.write("refresh in 30s...")
         sys.stdout.flush()
         passing_time += 1
         if one_shot:
             sys.exit(0)
-        print("refresh in 60s...")
-        time.sleep(60)
-        
+        time.sleep(30)
+
+
 def dialog(message1, message2, message3):
     layout = [
         [sg.Image(filename="dero_logo.png", size=(100, 100), pad=((10, 0), (10, 10)))],
@@ -424,8 +428,8 @@ def dialog(message1, message2, message3):
         [sg.Text(message3, size=(30, 1), pad=((10, 0), (0, 10)))],
         [sg.Button("OK", size=(10, 1), pad=((10, 10), (0, 10)))]
     ]
-    janela = sg.Window("DERO MINI-BLOCK FOUND", layout, size=(400, 400), auto_close=True, auto_close_duration=15)
-    #playsound('cash1.mp3')
+    janela = sg.Window("DERO MINI-BLOCK FOUND", layout, size=(400, 400), auto_close=True, auto_close_duration=30)
+    # playsound('cash1.mp3')
     playsound('coin2.wav')
     while True:
         evento, valores = janela.read(timeout=100)
@@ -442,7 +446,7 @@ if __name__ == '__main__':
     init(autoreset=True)
 
     # teste caixa de diálogo
-    #dialog("Dero Mini-Block Found!", " ", agora.strftime("%d/%m/%Y %H:%M:%S"))
+    #dialog("Dero Mini-Block Found!", "aaa", agora.strftime("%d/%m/%Y %H:%M:%S"))
 
     node_rpc_server = None
     if args.rpc_server:
@@ -453,4 +457,4 @@ if __name__ == '__main__':
         max_zero = int(args.notify_count)
     if args.day_range:
         DAYS = args.day_range
-    run(wallet_rpc_server, max_zero,  node_rpc_server, args.one_shot)
+    run(wallet_rpc_server, max_zero, node_rpc_server, args.one_shot)
