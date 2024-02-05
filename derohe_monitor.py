@@ -18,6 +18,7 @@ import argparse
 import PySimpleGUI as sg
 from dateutil import parser
 from playsound import playsound
+import pygame
 from colorama import init
 
 from collections import deque
@@ -25,12 +26,13 @@ from datetime import datetime, timedelta
 
 RATIO = 100000
 wallet_rpc_server = "http://127.0.0.1:10103/json_rpc"
-node_rpc_server = "http://127.0.0.1:10103/json_rpc"
+node_rpc_server = None
 agora = datetime.now()
 HEIGHT = 0
 DAYS = 7
 MINIBLOCK_WORTH = 0.0615
 GRAPH_WIDTH = 50
+TIME_SLEEP = 30
 
 
 def get_arguments():
@@ -232,8 +234,7 @@ class DerodParser:
                 "method": method,
                 "params": params}
         try:
-            r = requests.post(self.rpc_server, json=body,
-                              headers=headers, timeout=(9, 120))
+            r = requests.post(self.rpc_server, json=body, headers=headers, timeout=(9, 120))
         except:
             print("RPC not found. Terminating")
             sys.exit()
@@ -265,10 +266,7 @@ class DerodParser:
         for i in range(current_height - 35000, current_height):
             print(i)
             blk = self.get_block(i)
-            short_date = datetime.fromtimestamp(blk['result']['block_header']['timestamp'] // 1000).replace(hour=0,
-                                                                                                            minute=0,
-                                                                                                            second=0,
-                                                                                                            microsecond=0)
+            short_date = datetime.fromtimestamp(blk['result']['block_header']['timestamp'] // 1000).replace(hour=0, minute=0, second=0, microsecond=0)
             if short_date in diff_by_day.keys():
                 diff_by_day[short_date].append(int(blk['result']['block_header']['difficulty']))
         for item in diff_by_day:
@@ -331,14 +329,18 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=Non
     passing_time = 0
     flag_notify = True
     diff = 0.0
-    global fiat
     wp = WalletParser(rpc_server, DAYS, )
     node_wp = None if node_rpc_server is None else WalletParser(node_rpc_server)
+    global fiat, price_change
     try:
         fiat = requests.get('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=dero').json()[0][
             'current_price']
+        price_change = round(requests.get('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=dero').json()[0][
+            'price_change_percentage_24h'], 2)
+
     except:
         fiat = 0
+        price_change = 0
         print("Coingecko is out")
     dp = None if main_rpc is None else DerodParser(main_rpc)
     while True:
@@ -387,6 +389,7 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=Non
             lines += "| {:14}:{:61} |\n".format("Node amount", node_wp.get_balance())
         if fiat != 0:
             lines += "| {:14}:{:61} |\n".format("U$ Fiat amount", round(fiat * wp.get_balance(), 3))
+        lines += "| {:14}:{:>48} ({:>1}% 24h) |\n".format("U$ Dero", fiat, price_change)
         now = datetime.now()
         formatted_date = now.strftime('%Y-%m-%d %H:%M:%S')
         lines += "| {:14}:{:>61} |\n".format("Date", formatted_date)
@@ -413,12 +416,12 @@ def run(rpc_server, max_zero, node_rpc_server=None, one_shot=False, main_rpc=Non
                 sys.stdout.write('\x1b[1A')
                 sys.stdout.write('\x1b[2K')
         sys.stdout.write(lines)
-        sys.stdout.write("refresh in 30s...")
+        sys.stdout.write(f"refresh in {TIME_SLEEP}s...")
         sys.stdout.flush()
         passing_time += 1
         if one_shot:
             sys.exit(0)
-        time.sleep(30)
+        time.sleep(TIME_SLEEP)
 
 
 def dialog(message1, message2, message3):
@@ -429,17 +432,22 @@ def dialog(message1, message2, message3):
         [sg.Text(message3, size=(30, 1), pad=((10, 0), (0, 10)))],
         [sg.Button("OK", size=(10, 1), pad=((10, 10), (0, 10)))]
     ]
-    janela = sg.Window("DERO MINI-BLOCK FOUND", layout, size=(400, 400), auto_close=True, auto_close_duration=30)
+    janela = sg.Window("DERO MINI-BLOCK FOUND", layout, size=(400, 400), auto_close=True, auto_close_duration=5)
     # playsound('cash1.mp3')
-    playsound('coin2.wav')
+    pygame.mixer.init()
+    pygame.mixer.music.load('coin2.wav')
+    pygame.mixer.music.play()
+    while pygame.mixer.music.get_busy():
+        pygame.time.Clock().tick(10)
+    pygame.mixer.quit()
+
     while True:
-        evento, valores = janela.read(timeout=100)
+        evento, valores = janela.read(timeout=10)
         if evento == "OK":
             break
         if evento == sg.WINDOW_CLOSED:
             break
     janela.close()
-
 
 if __name__ == '__main__':
     max_zero = 0
@@ -449,7 +457,6 @@ if __name__ == '__main__':
     # teste caixa de diálogo
     #dialog("Dero Mini-Block Found!", "aaa", agora.strftime("%d/%m/%Y %H:%M:%S"))
 
-    node_rpc_server = None
     if args.rpc_server:
         wallet_rpc_server = "http://{}/json_rpc".format(args.rpc_server)
     if args.node_rpc_server:
